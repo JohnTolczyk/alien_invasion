@@ -14,8 +14,8 @@ class Ship:
         self.rect = self.image.get_rect()
 
         # Start each new ship at the bottom center of the screen.
-        self.rect.center = self.screen_rect.center
-
+        self.rect.midbottom = self.screen_rect.midbottom
+        
         # Movement flag: start with a ship thats not moving
         self.moving_right = False
         self.moving_left = False
