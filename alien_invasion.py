@@ -5,7 +5,7 @@ import pygame
 
 from settings import Settings
 from game_stats import GameStats
-
+from scoreboard import Scoreboard
 from button import Button
 from ship import Ship
 from bullet import Bullet
@@ -17,7 +17,9 @@ class AlienInvasion:
 
     def __init__(self):
         """Initialize the game, and create game resources."""
+        pygame.mixer.pre_init(44000, -16, 2, 512)
         pygame.init()
+        pygame.mixer.init()
         self.clock = pygame.time.Clock()
         self.settings = Settings()
 
@@ -29,16 +31,17 @@ class AlienInvasion:
         #Create and instance to store game statistics,
         # and create a scoreboard
         self.stats = GameStats(self)
-        
+        self.sb = Scoreboard(self)
     
         #Make the play button
-        self.play_button = Button(self, "Play you Jabroni")
+        self.play_button = Button(self, "Play! You Hoser!")
 
 
         self.ship = Ship(self)
         self.bullets = pygame.sprite.Group()
         self.aliens = pygame.sprite.Group()
-
+        self.snd_shoot = pygame.mixer.Sound('sounds/water_drop-6707.ogg')
+        self.snd_burp = pygame.mixer.Sound('sounds/fast-burp-106002.ogg')
         self._create_fleet()
 
         #Start Alien Invasion in an active state.
@@ -50,9 +53,9 @@ class AlienInvasion:
             self._check_events()
             
             if self.game_active:
-                self.ship.update()
-                self._update_bullets()
-                self._update_aliens()
+               self.ship.update()
+               self._update_bullets()
+               self._update_aliens()
                 
             self._update_screen()
             self.clock.tick(60)
@@ -77,11 +80,13 @@ class AlienInvasion:
         """Start a new game when the player clicks Play."""
         button_clicked = self.play_button.rect.collidepoint(mouse_pos)
         if button_clicked and not self.game_active:
-                #Reset the game settings.
-                self.settings.initialize_dynamic_settings()
+                #Reset the game settings.self.settings.initialize_dynamic_settings()
                 
                 # Reset the game statistics.
                 self.stats.reset_stats
+                self.sb.prep_score()
+                self.sb.prep_level()
+                self.sb.prep_ships()
                 self.game_active = True
 
                 #Get rid of any remaing bullets and aliens.
@@ -107,6 +112,7 @@ class AlienInvasion:
             sys.exit()
         elif event.key == pygame.K_SPACE:
             self._fire_bullet()
+            self.snd_shoot.play()
     
     def _check_keyup_events(self,event):
         """Respond to key releases."""
@@ -176,17 +182,30 @@ class AlienInvasion:
         #Remove any bullets and aliens that have collided.
         collisions = pygame.sprite.groupcollide(
             self.bullets, self.aliens, False, True)
+        
+        if collisions:
+            for aliens in collisions.values():
+                self.stats.score += self.settings.alien_points * len(aliens)
+            self.sb.prep_score()
+            self.sb.check_high_score()
+            self.snd_burp.play()
+
         if not self.aliens:
             #Destroy existing bullets and create new fleet.
             self.bullets.empty()
             self._create_fleet()
             self.settings.increase_speed()
 
+            #Increase level.
+            self.stats.level += 1
+            self.sb.prep_level()
+
     def _ship_hit(self):
         """Respond to the shio being hit by an alien."""
         if self.stats.ships_left > 0:
-            #Decrement ships left.
+            #Decrement ships left and update scoreboard.
             self.stats.ships_left -= 1
+            self.sb.prep_ships()
         
             #get rid of any remaining bullets and aliens.
             self.bullets.empty()
@@ -230,6 +249,9 @@ class AlienInvasion:
             bullet.draw_bullet()
         self.ship.blitme()
         self.aliens.draw(self.screen)
+
+        # Draw the score information.
+        self.sb.show_score()
 
 
         #Draw the play button if the game is inactive.
