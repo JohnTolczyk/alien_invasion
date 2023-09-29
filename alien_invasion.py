@@ -47,6 +47,11 @@ class AlienInvasion:
         #Start Alien Invasion in an active state.
         self.game_active = False
 
+        # start theme music
+        pygame.mixer.music.load('sounds/dazzle.ogg')
+        pygame.mixer.music.set_volume(1)
+       
+
     def run_game(self):
         """Start the main loop for the game."""
         while True:
@@ -83,12 +88,13 @@ class AlienInvasion:
                 #Reset the game settings.self.settings.initialize_dynamic_settings()
                 
                 # Reset the game statistics.
-                self.stats.reset_stats
+                self.stats.reset_stats()
                 self.sb.prep_score()
                 self.sb.prep_level()
                 self.sb.prep_ships()
                 self.game_active = True
-
+                pygame.mixer.music.play(loops=True)
+                
                 #Get rid of any remaing bullets and aliens.
                 self.bullets.empty()
                 self.aliens.empty()
@@ -157,8 +163,8 @@ class AlienInvasion:
         for alien in self.aliens.sprites():
             alien.rect.y += self.settings.fleet_drop_speed
         self.settings.fleet_direction *= -1
-        
 
+    
     def _fire_bullet(self):
         """Create a new bullet and add it to the bullets group."""
         if len(self.bullets) < self.settings.bullets_allowed:
